@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>
+        Haxpod Contro
+    </title>
+    <meta name="viewport" content="user-scalable=no">
+</head>
+<body style="position: fixed; font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif ;
+color:rgb(128, 128, 128);
+font-size: xx-large;">
+
+<h1 style="text-align:center">
+    Haxpod Contro </h1>
+
+<p style="text-align: center;">
+    X: <span id="x_coordinate"> </span>
+    Y: <span id="y_coordinate"> </span>
+    Speed: <span id="speed"> </span> %
+    Angle: <span id="angle"> </span>
+</p>
+
+<p style="text-align: center;">
+    connect-state: <span id="connect_state"> </span>
+</p>
+
+
+<canvas id="canvas" name="game"></canvas>
+<script>
+    var lockReconnect = false;//避免重复连接
+    var ws = null; //WebSocket的引用
+    var wsUrl = "localhost:2303"; //这个要与后端提供的相同
+    //创建WebSocket连接,如果不确定浏览器是否支持，可以使用socket.js做连接
+    function createWebSocket(url) {
+        try {
+            if ('WebSocket' in window) {
+                ws = new WebSocket("ws://" + url + "/socketServer");
+            } else {
+                ws = new SockJS("http://" + url + "/sockjs/socketServer");
+            }
+            initEventHandle();
+        } catch (e) {
+            reconnect(wsUrl);
+        }
+    }
+
+    function reconnect(url) {
+        if (lockReconnect) return;
+        lockReconnect = true;
+        document.getElementById("connect_state").innerHTML = "<font style='color: orange'>&diams; connecting...</font>";
+        //没连接上会一直重连，设置延迟避免请求过多
+        setTimeout(function () {
+            createWebSocket(wsUrl);
+            console.log("retry connecting... T:" + new Date())
+            // document.getElementById("connect_state").innerHTML = "<font style='color: yellow'>&diams; connecting...</font>";
+            lockReconnect = false;
+        }, 3000); //这里设置重连间隔(ms)
+    }
+
+    /*********************初始化开始**********************/
+    function initEventHandle() {
+        // 连接成功建立后响应
+        ws.onopen = function () {
+            document.getElementById("connect_state").innerHTML = "<font style='color: chartreuse'>&bull; connect build</font>";
+            // ws.send("Hello WebSockets!");
+            console.log("connecting Success " + wsUrl);
+            //心跳检测重置
+            heartCheck.reset().start();
+        }
+        // 收到服务器消息后响应
+        ws.onmessage = function (e) {
+            //如果获取到消息，心跳检测重置
+            //拿到任何消息都说明当前连接是正常的
+            heartCheck.reset().start();
+            //Json转换成Object
+            var msg = eval('(' + e.data + ')');
+
+            if (msg.message == "heartBeat") {
+                //忽略心跳的信息，因为只要有消息进来，断线重连就会重置不会触发
+            } else {
+                //处理消息的业务逻辑
+            }
+        }
+
+        // 连接关闭后响应
+        ws.onclose = function () {
+            console.log("connection close");
+            reconnect(wsUrl);//重连
+        }
+        ws.onerror = function () {
+            reconnect(wsUrl);//重连
+        };
+    }
+
+    /***************初始化结束***********************/
+        //心跳检测
+    var heartCheck = {
+            timeout: 15000,//毫秒
+            timeoutObj: null,
+            serverTimeoutObj: null,
+            reset: function () {
+                clearTimeout(this.timeoutObj);
+                clearTimeout(this.serverTimeoutObj);
+                return this;
+            },
+            start: function () {
+                var self = this;
+                this.timeoutObj = setTimeout(function () {
+                    //这里发送一个心跳，后端收到后，返回一个心跳消息，
+                    //onmessage拿到返回的心跳就说明连接正常
+                    ws.send("HeartBeat");
+                    console.log("HeartBeat");
+                    self.serverTimeoutObj = setTimeout(function () {//如果超过一定时间还没重置，说明后端主动断开了
+                        ws.close();//如果onclose会执行reconnect，我们执行ws.close()就行了.如果直接执行reconnect 会触发onclose导致重连两次
+                    }, self.timeout)
+                }, this.timeout)
+            }
+        }
+
+
+    // 强制退出
+    window.onunload = function () {
+        ws.close();
+    }
+    createWebSocket(wsUrl);/**启动连接**/
+    //连接打开时触发
+    // ws.onopen = function (evt) {
+    //     document.getElementById("connect_state").innerHTML = "<font style='color: chartreuse'>&bull; connect build</font>";
+    //     ws.send("Hello WebSockets!");
+    // };
+    //接收到消息时触发
+    // ws.onmessage = function(evt) {
+    //     console.log("Received Message: " + evt.data);
+    // };
+    //连接关闭时触发
+    ws.onclose = function (evt) {
+        document.getElementById("connect_state").innerHTML = "<font style='color: crimson'>&diams; connect close</font>";
+        reconnect(wsUrl)
+    };
+    var canvas, ctx;
+
+    window.addEventListener('load', () => {
+
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+        resize();
+
+        document.addEventListener('mousedown', startDrawing);
+        document.addEventListener('mouseup', stopDrawing);
+        document.addEventListener('mousemove', Draw);
+
+        document.addEventListener('touchstart', startDrawing);
+        document.addEventListener('touchend', stopDrawing);
+        document.addEventListener('touchcancel', stopDrawing);
+        document.addEventListener('touchmove', Draw);
+        window.addEventListener('resize', resize);
+
+        document.getElementById("x_coordinate").innerText = 0;
+        document.getElementById("y_coordinate").innerText = 0;
+        document.getElementById("speed").innerText = 0;
+        document.getElementById("angle").innerText = 0;
+        document.getElementById("connect_state").innerText = "connect close";
+    });
+
+    var width, height, radius, x_orig, y_orig;
+
+    function resize() {
+        width = window.innerWidth;
+        radius = 200;
+        height = radius * 6.5;
+        ctx.canvas.width = width;
+        ctx.canvas.height = height;
+        background();
+        joystick(width / 2, height / 3);
+    }
+
+    function background() {
+        x_orig = width / 2;
+        y_orig = height / 3;
+
+        ctx.beginPath();
+        ctx.arc(x_orig, y_orig, radius + 20, 0, Math.PI * 2, true);
+        ctx.fillStyle = '#ECE5E5';
+        ctx.fill();
+    }
+
+    function joystick(width, height) {
+        ctx.beginPath();
+        ctx.arc(width, height, radius, 0, Math.PI * 2, true);
+        ctx.fillStyle = '#F08080';
+        ctx.fill();
+        ctx.strokeStyle = '#F6ABAB';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+    }
+
+    let coord = {x: 0, y: 0};
+    let paint = false;
+
+    function getPosition(event) {
+        var mouse_x = event.clientX || event.touches[0].clientX;
+        var mouse_y = event.clientY || event.touches[0].clientY;
+        coord.x = mouse_x - canvas.offsetLeft;
+        coord.y = mouse_y - canvas.offsetTop;
+    }
+
+    function is_it_in_the_circle() {
+        var current_radius = Math.sqrt(Math.pow(coord.x - x_orig, 2) + Math.pow(coord.y - y_orig, 2));
+        if (radius >= current_radius) return true
+        else return false
+    }
+
+
+    function startDrawing(event) {
+        paint = true;
+        getPosition(event);
+        if (is_it_in_the_circle()) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            background();
+            joystick(coord.x, coord.y);
+            Draw();
+        }
+    }
+
+
+    function stopDrawing() {
+        paint = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        background();
+        joystick(width / 2, height / 3);
+        document.getElementById("x_coordinate").innerText = 0;
+        document.getElementById("y_coordinate").innerText = 0;
+        document.getElementById("speed").innerText = 0;
+        document.getElementById("angle").innerText = 0;
+
+    }
+
+    function Draw(event) {
+
+        if (paint) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            background();
+            var angle_in_degrees, x, y, speed;
+            var angle = Math.atan2((coord.y - y_orig), (coord.x - x_orig));
+
+            if (Math.sign(angle) == -1) {
+                angle_in_degrees = Math.round(-angle * 180 / Math.PI);
+            } else {
+                angle_in_degrees = Math.round(360 - angle * 180 / Math.PI);
+            }
+
+
+            if (is_it_in_the_circle()) {
+                joystick(coord.x, coord.y);
+                x = coord.x;
+                y = coord.y;
+            } else {
+                x = radius * Math.cos(angle) + x_orig;
+                y = radius * Math.sin(angle) + y_orig;
+                joystick(x, y);
+            }
+
+
+            getPosition(event);
+
+            var speed = Math.round(100 * Math.sqrt(Math.pow(x - x_orig, 2) + Math.pow(y - y_orig, 2)) / radius);
+
+            var x_relative = Math.round(x - x_orig);
+            var y_relative = Math.round(y - y_orig);
+
+
+            document.getElementById("x_coordinate").innerText = x_relative;
+            document.getElementById("y_coordinate").innerText = y_relative;
+            document.getElementById("speed").innerText = speed;
+            document.getElementById("angle").innerText = angle_in_degrees;
+
+            // ws.send(JSON.stringify({x_relative, y_relative, speed, angle_in_degrees}));
+            if (ws.readyState == 1) {
+                //自定义消息串，让后端接收
+                ws.send(JSON.stringify({x_relative, y_relative, speed, angle_in_degrees}));
+            } else {
+                document.getElementById("connect_state").innerHTML = "<font style='color: red'>&loz; Fail ...</font>";
+            }
+
+        }
+    }
+</script>
+</body>
+</html><br>

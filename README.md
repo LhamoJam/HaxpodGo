@@ -10,6 +10,4 @@
 gocv是golang中对opencv库封装。
 ### gocv安装
 + gocv网址: https://gocv.io/
-+ 安装OpenCV: http://c.biancheng.net/view/1104.html
-+ 下载 `go get -u -d gocv.io/x/gocv`
-+ 编译 
++ 由于国内网络环境,建议在win_build_opencv.cmd加上`pause`,运行后暂停来查看输出
