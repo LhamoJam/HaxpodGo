@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>WebSocket Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <script type="text/javascript">
+        // var ws = {};//初始化ws对象
+        //
+        // //init()方法为了初始化ws的一些具体回调函数，在body的onload事件中触发
+        // function init() {
+        //     //链接服务端
+        //     ws = new WebSocket("ws://localhost:8080");
+        //
+        //     //配置客户端连接成功的回调方法
+        //     ws.onopen = function (event) {
+        //         console.log("open...");
+        //     };
+        //
+        //     //配置客户端处理消息的回调方法
+        //     ws.onmessage = function (event) {
+        //         //创建FileReader对象，该对象时html5中的特有对象，详细用法可以//参照html5相关资料
+        //         var reader = new FileReader();
+        //
+        //         //设置FileReader对象的读取文件回调方法
+        //         reader.onload = function (eve) {
+        //             //判断文件是否读取完成
+        //             if (eve.target.readyState == FileReader.DONE) {
+        //                 //读取文件完成后，创建img标签来显示服务端传来的字节数//组
+        //                 var img = document.getElementById("show");
+        //                 //读取文件完成后内容放在this===当前
+        //                 //fileReader对象的result属性中，将该内容赋值img标签//浏览器就可以自动解析内容格式并且渲染在浏览器中
+        //                 img.src = this.result;
+        //                 //将标签添加到id为show的div中否则，即便是有img也看不见
+        //                 // document.getElementById("show") = img;
+        //             }
+        //         };
+        //
+        //         //调用FileReader的readAsDataURL的方法自动就会触发onload事件
+        //         reader.readAsDataURL(event.data);
+        //     };
+        // }
+    </script>
+
+<body onload="init()">
+<!--<img id="show" style="width:300px; height:300px; border:1px solid" />-->
+<!--<img style="-webkit-user-select: none;margin: auto;background-color: hsl(0, 0%, 25%);" src="http://localhost:8080/">-->
+</body>
+</html>
