@@ -17,3 +17,5 @@ gocv是golang中对opencv库封装。
   + Linux下： `export GO111MODULE=off`
 + gocv网址: https://gocv.io/
 + 由于国内网络环境,建议在win_build_opencv.cmd加上`pause`,运行后暂停来查看输出
+
+**如果运行要提示安装包,要打开`GO111MODULE=on`**
