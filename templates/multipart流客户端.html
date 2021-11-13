@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>WebSocket Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <img style="-webkit-user-select: none;margin: auto;background-color: hsl(0, 0%, 25%);">
+
+    <script type="text/javascript">
+        start()
+        function start() {
+            // Fetch the token from local storage. If it's empty, the server will automatically create a new one
+            var token = localStorage.getItem("token");
+            // Create a session with the server
+            http = new XMLHttpRequest();
+            http.open("GET", "/startsession?token="+(token)+"&w="+(parent.innerWidth)+"&h="+(parent.innerHeight));
+            http.send();
+            http.onreadystatechange = (e) => {
+                if (http.readyState === 4 && http.status === 200) {
+                    // Save the returned token
+                    token = http.responseText;
+                    localStorage.setItem("token", token);
+                    // Create screen
+                    var img = document.createElement("img");
+                    img.alt = "main display";
+                    // Hide the loader when it loads
+                    img.onload = function() {
+                        var loader = document.getElementById("loader");
+                        loader.remove();
+                    }
+                    // Start loading
+                    img.src = "/stream.png?token="+token;
+                    // Start capturing keystrokes
+                    document.onkeydown = function(e) {
+                        // Send the keypress to the server as a command (ignore the response)
+                        cmdsend = new XMLHttpRequest();
+                        cmdsend.open("POST", "/cmd?token="+(token));
+                        cmdsend.send("keypress:"+e.code);
+                        // Catch special cases
+                        if (e.code === "Escape") {
+                            // Clear local storage to remove leftover token
+                            localStorage.clear();
+                            // Remove keypress handler
+                            document.onkeydown = function(e) {}
+                            // Notify the user
+                            alert("Session ended succesfully and the screen is inactive. You may now close this tab.");
+                        }
+                        // Cancel whatever it is the keypress normally does
+                        return false;
+                    }
+                    // Add screen to body
+                    document.getElementById("body").appendChild(img);
+                } else if (http.readyState === 4) {
+                    alert("Error while starting the session: "+http.responseText);
+                }
+            }
+        }
+    </script>
+
+<body onload="init()">
+<!--<img id="show" style="width:300px; height:300px; border:1px solid" />-->
+<!--<img style="-webkit-user-select: none;margin: auto;background-color: hsl(0, 0%, 25%);" src="http://localhost:8080/">-->
+</body>
+</html>
