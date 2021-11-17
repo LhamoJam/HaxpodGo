@@ -1,4 +1,3 @@
-
 # HaxpodGo
 本项目使用Golang语言驱动六足机器人,功能如下:
 1. 基于websocket的全端遥控
