@@ -108,7 +108,8 @@
 #endif
 
 #ifndef SERIAL_BAUD
-#define SERIAL_BAUD 38400
+//#define SERIAL_BAUD 38400
+#define SERIAL_BAUD 115200
 #endif
 
 #define WALKMODE          0
@@ -565,9 +566,3 @@ void SerTurnRobotOff(void)
   g_InControlState.fRobotOn = 0;
   AdjustLegPositionsToBodyHeight();    // Put main workings into main program file
 }
-
-
-
-
-
-

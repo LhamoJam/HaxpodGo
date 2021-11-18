@@ -22,6 +22,7 @@
 
 #include "Hex_CFG.h"
 #include "Phoenix.h"
-#include "Phoenix_Input_PS2.h"
+//#include "Phoenix_Input_PS2.h"
+#include "Phoenix_Input_Serial.h"
 #include "Phoenix_Driver_SSC32.h"
 #include "Phoenix_Code.h"
